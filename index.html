@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="description" content="SecureDrop — private direct file transfer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; style-src 'self'; script-src 'self'; connect-src 'self' ws: wss: https:; media-src 'self' blob:;">
+  <title>SecureDrop — Private. Direct. Simple.</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="SecureDrop home"><span class="brand-mark">S</span><span>SecureDrop</span></a>
+    <div class="status-pill" id="headerStatus"><span class="dot"></span><span id="headerStatusText">Ready</span></div>
+  </header>
+
+  <main class="shell">
+    <section id="homeView" class="view active">
+      <div class="hero">
+        <div class="eyebrow">PRIVATE • DIRECT • SIMPLE</div>
+        <h1>Transfer files<br><span>without cables.</span></h1>
+        <p>Pair devices with a temporary QR code, then transfer files through an encrypted WebRTC connection.</p>
+        <div class="hero-actions">
+          <button class="btn primary" id="createBtn">Create Transfer</button>
+          <button class="btn secondary" id="joinBtn">Join Transfer</button>
+        </div>
+        <div class="trust-row">
+          <span>🔒 End-to-end transport encryption</span>
+          <span>↔ Direct P2P when available</span>
+          <span>⌛ Temporary sessions</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="createView" class="view">
+      <div class="page-head">
+        <button class="icon-btn" data-back aria-label="Back">←</button>
+        <div><div class="eyebrow">NEW SESSION</div><h2>Scan to connect</h2></div>
+      </div>
+      <div class="grid two">
+        <article class="card qr-card">
+          <div class="device-badge">💻 <span id="hostDeviceLabel">This device</span></div>
+          <div id="qr" class="qr-box" aria-label="Session QR code"></div>
+          <div class="session-code" id="sessionCode">------</div>
+          <p class="muted">Scan this code from the other device. It expires automatically.</p>
+          <div class="timer"><span>Expires in</span><strong id="timer">15:00</strong></div>
+          <button class="btn secondary wide" id="regenBtn">Regenerate pairing code</button>
+        </article>
+        <article class="card">
+          <h3>How it works</h3>
+          <ol class="steps">
+            <li><b>Scan</b><span>Open SecureDrop on your phone and scan this QR.</span></li>
+            <li><b>Verify</b><span>Compare the short security code on both devices.</span></li>
+            <li><b>Transfer</b><span>Approve incoming files and save them locally.</span></li>
+          </ol>
+          <div class="security-note">🔐 The signaling server negotiates the connection; it is not a file-storage service.</div>
+        </article>
+      </div>
+    </section>
+
+    <section id="joinView" class="view">
+      <div class="page-head">
+        <button class="icon-btn" data-back aria-label="Back">←</button>
+        <div><div class="eyebrow">JOIN SESSION</div><h2>Connect your device</h2></div>
+      </div>
+      <div class="grid two">
+        <article class="card center">
+          <div class="scan-icon">▣</div>
+          <h3>Scan the host QR</h3>
+          <p class="muted">Camera access is requested only while scanning.</p>
+          <div id="scannerWrap" class="scanner-wrap hidden">
+            <video id="scannerVideo" playsinline muted></video>
+            <div class="scan-frame"></div>
+          </div>
+          <button class="btn primary wide" id="scanBtn">Scan QR</button>
+          <div class="divider"><span>or</span></div>
+          <label class="field-label" for="manualCode">Manual pairing code</label>
+          <div class="inline">
+            <input id="manualCode" maxlength="6" placeholder="ABC123" autocomplete="off">
+            <button class="btn secondary" id="manualJoinBtn">Join</button>
+          </div>
+          <p class="tiny" id="scanMessage"></p>
+        </article>
+        <article class="card">
+          <h3>Before connecting</h3>
+          <ul class="clean">
+            <li>Use the exact code shown on the host.</li>
+            <li>Only accept devices you recognize.</li>
+            <li>Compare the verification code after pairing.</li>
+            <li>Keep the browser tab open during transfer.</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section id="verifyView" class="view">
+      <div class="center narrow">
+        <div class="eyebrow">SECURITY CHECK</div>
+        <h2>Verify secure connection</h2>
+        <p class="muted">Compare this code with the other device. Continue only if they match.</p>
+        <div class="fingerprint" id="fingerprint">------</div>
+        <button class="btn primary wide" id="verifyBtn">✓ Codes match — verify</button>
+        <button class="btn ghost wide" id="rejectVerifyBtn">Disconnect</button>
+      </div>
+    </section>
+
+    <section id="dashboardView" class="view">
+      <div class="page-head">
+        <div><div class="eyebrow">SECURE SESSION</div><h2>Transfer dashboard</h2></div>
+        <button class="btn danger" id="disconnectBtn">Disconnect</button>
+      </div>
+      <div class="dashboard-grid">
+        <article class="card">
+          <div class="card-title"><h3>Connection</h3><span class="secure">● Connected</span></div>
+          <div class="connection-line"><span>🔒</span><b id="connectionMode">Encrypted P2P</b></div>
+          <p class="muted" id="connectionDetail">WebRTC DataChannel is active.</p>
+        </article>
+        <article class="card">
+          <div class="card-title"><h3>Device</h3></div>
+          <div class="device-row"><span class="device-icon" id="myDeviceIcon">💻</span><div><b id="myDeviceName">My Device</b><small id="peerDeviceName">Peer: waiting</small></div></div>
+        </article>
+      </div>
+
+      <div class="transfer-grid">
+        <article class="card transfer-card">
+          <div class="dropzone" id="dropzone" tabindex="0">
+            <div class="upload-icon">↑</div>
+            <h3>Drop files here to send</h3>
+            <p class="muted">or choose files from this device</p>
+            <div class="hero-actions compact">
+              <button class="btn primary" id="chooseFilesBtn">Choose Files</button>
+              <button class="btn secondary" id="chooseFolderBtn">Choose Folder</button>
+            </div>
+            <input id="fileInput" type="file" multiple hidden>
+            <input id="folderInput" type="file" webkitdirectory directory multiple hidden>
+          </div>
+          <div id="outgoingList" class="transfer-list"></div>
+        </article>
+        <article class="card">
+          <div class="card-title"><h3>Incoming files</h3><span class="count" id="incomingCount">0</span></div>
+          <div id="incomingList" class="transfer-list empty">No incoming files yet.</div>
+        </article>
+      </div>
+    </section>
+
+    <section id="settingsView" class="view">
+      <div class="page-head">
+        <button class="icon-btn" data-back aria-label="Back">←</button>
+        <div><div class="eyebrow">SETTINGS</div><h2>Security & device</h2></div>
+      </div>
+      <article class="card settings">
+        <label class="setting"><span><b>Device name</b><small>Temporary name for this session</small></span><input id="deviceName" maxlength="32" value="My Device"></label>
+        <label class="setting"><span><b>Session timeout</b><small>Automatically expires the pairing session</small></span><select id="timeoutSelect"><option value="5">5 minutes</option><option value="15" selected>15 minutes</option><option value="30">30 minutes</option></select></label>
+        <label class="setting"><span><b>Require approval for incoming files</b><small>Ask before saving a received file</small></span><input id="approvalToggle" type="checkbox" checked></label>
+        <label class="setting"><span><b>Require device verification</b><small>Compare a short fingerprint after pairing</small></span><input id="verifyToggle" type="checkbox" checked></label>
+        <label class="setting"><span><b>Disconnect inactive devices</b><small>Close idle peer connections</small></span><input id="inactiveToggle" type="checkbox" checked></label>
+      </article>
+    </section>
+
+    <section id="privacyView" class="view">
+      <div class="page-head">
+        <button class="icon-btn" data-back aria-label="Back">←</button>
+        <div><div class="eyebrow">PRIVACY</div><h2>How SecureDrop handles data</h2></div>
+      </div>
+      <article class="card prose">
+        <h3>Files stay between your devices</h3>
+        <p>SecureDrop is designed to transfer files through an encrypted WebRTC connection. The signaling server is used to exchange connection setup messages and is not designed to receive or permanently store the actual file contents.</p>
+        <h3>What is encrypted?</h3>
+        <p>WebRTC DataChannels use authenticated transport encryption (DTLS). This protects data while it travels between peers. SecureDrop also derives a session key using ECDH and can encrypt file chunks with AES-GCM at the application layer. The browser does not send private keys to the signaling server.</p>
+        <h3>Important limitation</h3>
+        <p>A relay (TURN) can carry encrypted traffic when direct peer-to-peer networking is unavailable. A relay sees network metadata needed to relay packets, but should not be able to read application-encrypted file contents. No browser-only site can guarantee that every network will permit a direct connection.</p>
+      </article>
+    </section>
+  </main>
+
+  <footer>
+    <button data-nav="privacyView">Privacy</button>
+    <button data-nav="settingsView">Security settings</button>
+    <span>SecureDrop • Private. Direct. Simple.</span>
+  </footer>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script src="./qr.js"></script>
+  <script src="./crypto.js"></script>
+  <script src="./webrtc.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
